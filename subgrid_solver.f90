@@ -3,6 +3,10 @@ module subgrid_solver
    private
 
    interface
+      ! Интерфейс метода решения задачи в отдельной двумерной подсетке.
+      ! Аргументы:
+      ! subgrid0: одномерное представление квадратной подсетки.
+      ! subgrid_size0: размер подсетки по одной координате.
       subroutine i_subgrid_solver_method(subgrid0, subgrid_size0)
          implicit none
          integer, intent(in) :: subgrid_size0
@@ -30,15 +34,23 @@ module subgrid_solver
    public :: subtiling_sor_8
    public :: subtiling_sor_16
 
+   ! Параметры и состояние двумерного решателя подсетки.
+   ! eps: критерий остановки по суммарному изменению внутренних узлов.
+   ! omega: параметр релаксации метода SOR.
    real*8 :: eps, omega
+   ! max_iter: верхний предел числа итераций.
    integer :: max_iter
+   ! tile_size: размер плитки для tiled-вариантов обхода.
+   ! subtile_level: глубина сублингового разбиения для subtiling-вариантов.
    integer :: tile_size, subtile_level
 
+   ! time: время последнего запуска решателя.
    real*8 :: time
+   ! iter: число итераций последнего запуска.
    integer :: iter
 
 contains
-
+   ! Устанавливает значения по умолчанию для двумерного решателя подсетки.
    subroutine set_default_subgrid_solver_settings()
       implicit none
 
@@ -49,7 +61,13 @@ contains
       subtile_level = -1
 
    end subroutine set_default_subgrid_solver_settings
-
+   ! Обновляет настройки двумерного решателя подсетки.
+   ! Аргументы:
+   ! new_eps: новое значение критерия остановки.
+   ! new_max_iter: новое ограничение на число итераций.
+   ! new_omega: новое значение параметра релаксации.
+   ! new_tile_size: новый размер плитки.
+   ! new_subtile_level: новая глубина сублингового разбиения.
    subroutine set_subgrid_solver_settings(new_eps, new_max_iter, new_omega, new_tile_size, new_subtile_level)
      implicit none
      real*8, intent(in), optional :: new_eps, new_omega
@@ -62,7 +80,13 @@ contains
      if (present(new_subtile_level)) subtile_level = new_subtile_level
  
    end subroutine set_subgrid_solver_settings
-
+   ! Возвращает текущие настройки двумерного решателя подсетки.
+   ! Аргументы:
+   ! new_eps: сюда записывается текущее значение критерия остановки.
+   ! new_max_iter: сюда записывается текущее ограничение на число итераций.
+   ! new_omega: сюда записывается текущее значение параметра релаксации.
+   ! new_tile_size: сюда записывается текущий размер плитки.
+   ! new_subtile_level: сюда записывается текущая глубина сублингового разбиения.
    subroutine get_subgrid_solver_settings(new_eps, new_max_iter, new_omega, new_tile_size, new_subtile_level)
       implicit none
       real*8, intent(out), optional :: new_eps, new_omega
@@ -75,7 +99,11 @@ contains
       if (present(new_subtile_level)) new_subtile_level = subtile_level
   
     end subroutine get_subgrid_solver_settings
- 
+   ! Запускает выбранный двумерный решатель подсетки и измеряет время работы.
+   ! Аргументы:
+   ! new_subgrid: рабочий одномерный массив значений подсетки.
+   ! new_subgrid_size: размер подсетки по одной координате.
+   ! new_subgrid_solver_method: выбранный алгоритм решения подсетки.
    subroutine run_subgrid_solver(new_subgrid, new_subgrid_size, new_subgrid_solver_method)
       implicit none
       integer, intent(in) :: new_subgrid_size
@@ -91,7 +119,10 @@ contains
       time = end_time - start_time
 
    end subroutine run_subgrid_solver
-
+   ! Возвращает результаты последнего запуска двумерного решателя подсетки.
+   ! Аргументы:
+   ! res_time: время выполнения в секундах.
+   ! res_iter: число выполненных итераций.
    subroutine get_subgrid_solver_results(res_time, res_iter)
       implicit none
       real*8, intent(out) :: res_time
@@ -99,7 +130,10 @@ contains
       res_time = time
       res_iter = iter
    end subroutine get_subgrid_solver_results
-
+   ! Классическая реализация двумерного метода SOR с последовательным обходом узлов.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine original_sor(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -135,7 +169,10 @@ contains
       end do
 
    end subroutine original_sor
-
+   ! Универсальный двумерный SOR с блочным обходом по настраиваемому размеру плитки.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine tiling_sor(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -178,7 +215,10 @@ contains
       end do
 
    end subroutine tiling_sor
-
+   ! Специализированный tiled-вариант SOR с размером плитки 1.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine tiling_sor_1(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -224,7 +264,10 @@ contains
       end do
 
    end subroutine tiling_sor_1
-
+   ! Специализированный tiled-вариант SOR с размером плитки 2.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine tiling_sor_2(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -270,7 +313,10 @@ contains
       end do
 
    end subroutine tiling_sor_2
-
+   ! Специализированный tiled-вариант SOR с размером плитки 4.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine tiling_sor_4(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -316,7 +362,10 @@ contains
       end do
 
    end subroutine tiling_sor_4
-
+   ! Специализированный tiled-вариант SOR с размером плитки 8.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine tiling_sor_8(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -362,7 +411,10 @@ contains
       end do
 
    end subroutine tiling_sor_8
-
+   ! Специализированный tiled-вариант SOR с размером плитки 16.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine tiling_sor_16(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -408,7 +460,10 @@ contains
       end do
 
    end subroutine tiling_sor_16
-
+   ! Универсальный subtiling-вариант двумерного метода SOR.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine subtiling_sor(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -611,7 +666,10 @@ contains
 
       end do
    end subroutine subtiling_sor
-
+   ! Тестовая реализация subtiling-варианта двумерного метода SOR.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine subtiling_sor_test_version(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -723,7 +781,10 @@ contains
       deallocate(subtile_indices)
 
    end subroutine subtiling_sor_test_version
-
+   ! Специализированный subtiling-вариант SOR с размером плитки и уровня 1.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine subtiling_sor_1(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -928,7 +989,10 @@ contains
       end do
 
    end subroutine subtiling_sor_1
-
+   ! Специализированный subtiling-вариант SOR с размером плитки и уровня 2.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine subtiling_sor_2(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -1214,7 +1278,10 @@ contains
       end do
 
    end subroutine subtiling_sor_2
-
+   ! Специализированный subtiling-вариант SOR с размером плитки и уровня 4.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine subtiling_sor_4(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -1662,7 +1729,10 @@ contains
       end do
 
    end subroutine subtiling_sor_4
-
+   ! Специализированный subtiling-вариант SOR с размером плитки и уровня 8.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine subtiling_sor_8(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -2434,7 +2504,10 @@ contains
       end do
 
    end subroutine subtiling_sor_8
-
+   ! Специализированный subtiling-вариант SOR с размером плитки и уровня 16.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine subtiling_sor_16(u, u_size)
       implicit none
       integer, intent(in) :: u_size

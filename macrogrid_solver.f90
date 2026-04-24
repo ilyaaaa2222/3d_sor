@@ -1,14 +1,16 @@
-module macrogrid_solver
+﻿module macrogrid_solver
    use subgrid_solver
    use omp_lib
    implicit none
    private
 
    interface
+      ! Интерфейс макроитерационного метода, который работает с уже настроенным модулем.
       subroutine i_macrogrid_solver_method()
          implicit none
       end subroutine i_macrogrid_solver_method
 
+      ! Интерфейс внутренней процедуры вычисления всех подсеток макросетки.
       subroutine i_subgrids_computer()
          implicit none
       end subroutine i_subgrids_computer
@@ -26,20 +28,33 @@ module macrogrid_solver
    public :: sor_fixed_omega_one_iter
    public :: conjugate_residuals
 
+   ! Параметры и состояние макрорешателя.
+   ! macrogrid_size_x, macrogrid_size_y: размеры разбиения области на подсетки по осям X и Y.
+   ! subgrid_size: размер одной квадратной подсетки по одной координате.
+   ! max_iter: верхний предел числа макроитераций.
    integer :: macrogrid_size_x, macrogrid_size_y, subgrid_size, max_iter
+   ! omega: параметр релаксации для SOR-методов на интерфейсах.
+   ! eps: критерий остановки по суммарной невязке интерфейсов.
    real*8 :: omega, eps
+   ! macrogrid: указатель на рабочий массив значений всей макросетки.
    real*8, pointer :: macrogrid(:,:,:,:)
 
+   ! dx, dy: глобальные шаги сетки по осям X и Y.
    real*8 :: dx, dy
+   ! interface_size: число внутренних интерфейсных узлов между подсетками.
    integer :: interface_size
+   ! subgrid_solver_method: выбранный решатель отдельной подсетки.
    procedure(i_subgrid_solver_method), pointer :: subgrid_solver_method => null()
+   ! subgrids_computer: выбранный способ обхода подсеток, последовательный или OpenMP.
    procedure(i_subgrids_computer), pointer :: subgrids_computer => null()
 
+   ! time: время последнего запуска макрорешателя.
    real*8 :: time
+   ! iter: число итераций, выполненных последним запуском.
    integer :: iter
 
 contains
-
+   ! Устанавливает значения по умолчанию для макрорешателя и вложенного решателя подсеток.
    subroutine set_default_macrogrid_solver_settings()
       implicit none
 
@@ -50,7 +65,11 @@ contains
       omega = -1
 
    end subroutine set_default_macrogrid_solver_settings
-
+   ! Обновляет параметры макрорешателя.
+   ! Аргументы:
+   ! new_eps: новое значение критерия остановки.
+   ! new_max_iter: новое ограничение на число макроитераций.
+   ! new_omega: новое значение параметра релаксации.
    subroutine set_macrogrid_solver_settings(new_eps, new_max_iter, new_omega)
       implicit none
       real*8, intent(in), optional :: new_eps, new_omega
@@ -61,7 +80,11 @@ contains
       if (present(new_omega)) omega = new_omega
 
    end subroutine set_macrogrid_solver_settings
-
+   ! Возвращает текущие настройки макрорешателя.
+   ! Аргументы:
+   ! new_eps: сюда записывается текущее значение критерия остановки.
+   ! new_max_iter: сюда записывается текущее ограничение на число итераций.
+   ! new_omega: сюда записывается текущее значение параметра релаксации.
    subroutine get_macrogrid_solver_settings(new_eps, new_max_iter, new_omega)
       implicit none
       real*8, intent(out), optional :: new_eps, new_omega
@@ -72,7 +95,15 @@ contains
       if (present(new_omega)) new_omega = omega
 
    end subroutine get_macrogrid_solver_settings
-
+   ! Настраивает модуль, запускает выбранный макрометод и измеряет время работы.
+   ! Аргументы:
+   ! use_openmp: признак параллельного вычисления подсеток через OpenMP.
+   ! new_macrogrid: рабочий массив макросетки, который будет обновляться in-place.
+   ! new_macrogrid_size_x: число подсеток по оси X.
+   ! new_macrogrid_size_y: число подсеток по оси Y.
+   ! new_subgrid_size: размер одной квадратной подсетки.
+   ! new_macrogrid_solver_method: выбранный метод согласования интерфейсов между подсетками.
+   ! new_subgrid_solver_method: выбранный метод решения отдельной подсетки.
    subroutine run_macrogrid_solver(use_openmp, new_macrogrid, &
       new_macrogrid_size_x, new_macrogrid_size_y, new_subgrid_size, &
       new_macrogrid_solver_method, new_subgrid_solver_method)
@@ -112,7 +143,10 @@ contains
       time = end_time - start_time
 
    end subroutine run_macrogrid_solver
-
+   ! Возвращает результаты последнего запуска макрорешателя.
+   ! Аргументы:
+   ! res_time: время выполнения в секундах.
+   ! res_iter: число выполненных макроитераций.
    subroutine get_macrogrid_solver_results(res_time, res_iter)
       implicit none
       real*8, intent(out) :: res_time
@@ -120,7 +154,7 @@ contains
       res_time = time
       res_iter = iter
    end subroutine get_macrogrid_solver_results
-
+   ! Последовательно запускает решатель на каждой подсетке макросетки.
    subroutine compute_subgrids()
       implicit none
       integer :: iX, iY
@@ -132,7 +166,7 @@ contains
       end do
 
    end subroutine compute_subgrids
-
+   ! Параллельно запускает решатель на каждой подсетке макросетки через OpenMP.
    subroutine compute_subgrids_openmp()
       implicit none
       integer :: iX, iY
@@ -147,7 +181,7 @@ contains
       !$OMP END PARALLEL DO
 
    end subroutine compute_subgrids_openmp
-
+   ! Выполняет простой итерационный метод согласования интерфейсов между подсетками.
    subroutine simple_iteration()
       implicit none
       real*8 :: old_vec(interface_size), new_vec(interface_size)
@@ -205,7 +239,7 @@ contains
       call compute_intersection_nodes()
 
    end subroutine simple_iteration
-
+   ! Выполняет простой итерационный метод при одном шаге решателя подсетки на макроитерацию.
    subroutine simple_iteration_one_iter()
       implicit none
       integer :: max_subgrid_iter
@@ -216,7 +250,7 @@ contains
       call set_subgrid_solver_settings(new_max_iter = max_subgrid_iter)
 
    end subroutine simple_iteration_one_iter
-
+   ! Выполняет метод верхней релаксации с автоматической подстройкой параметра omega.
    subroutine sor()
       implicit none
       real*8 :: old_vec(interface_size), new_vec(interface_size)
@@ -292,7 +326,7 @@ contains
       call compute_intersection_nodes()
 
    end subroutine sor
-
+   ! Выполняет метод верхней релаксации с фиксированным значением omega.
    subroutine sor_fixed_omega()
       implicit none
       real*8 :: old_vec(interface_size), new_vec(interface_size)
@@ -354,7 +388,7 @@ contains
       call compute_intersection_nodes()
 
    end subroutine sor_fixed_omega
-
+   ! Выполняет SOR с фиксированным omega и одним шагом решателя подсетки на макроитерацию.
    subroutine sor_fixed_omega_one_iter()
       implicit none
       integer :: max_subgrid_iter
@@ -365,7 +399,7 @@ contains
       call set_subgrid_solver_settings(new_max_iter = max_subgrid_iter)
 
    end subroutine sor_fixed_omega_one_iter
-
+   ! Решает интерфейсную задачу методом сопряженных невязок.
    subroutine conjugate_residuals()
       implicit none
       real(8), dimension(interface_size) :: b, u_new, u_old, r_old, r_new, p_old, p_new
@@ -436,7 +470,7 @@ contains
       call compute_intersection_nodes()
 
    end subroutine conjugate_residuals
-
+   ! Усредняет значения в узлах пересечения нескольких интерфейсов подсеток.
    subroutine compute_intersection_nodes()
       implicit none
       integer :: iX, iY
@@ -461,7 +495,9 @@ contains
       end do
 
    end subroutine compute_intersection_nodes
-
+   ! Записывает вектор интерфейсных значений обратно в макросетку.
+   ! Аргументы:
+   ! vec: линейный вектор значений на внутренних интерфейсах подсеток.
    subroutine set_interface(vec)
       implicit none
       real*8, intent(in) :: vec(interface_size)
@@ -493,7 +529,9 @@ contains
       end do
 
    end subroutine set_interface
-
+   ! Собирает текущие интерфейсные значения макросетки в линейный вектор.
+   ! Аргументы:
+   ! s_vec: выходной вектор интерфейсных значений.
    subroutine s(s_vec)
       implicit none
       real*8,  intent(out) :: s_vec(interface_size)
@@ -528,7 +566,11 @@ contains
       end do
 
    end subroutine s
-
+   ! Вычисляет действие интерфейсного оператора на вектор с учетом правой части.
+   ! Аргументы:
+   ! v: входной вектор интерфейсных поправок.
+   ! b: базовый вектор интерфейсных значений.
+   ! Cv_vec: результат применения оператора к вектору v.
    subroutine Cv(v, b, Cv_vec)
       implicit none
       real*8, intent(in) :: v(interface_size), b(interface_size)

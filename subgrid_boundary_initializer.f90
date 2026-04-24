@@ -5,12 +5,20 @@ module subgrid_boundary_initializer
    public :: initialize_subgrid_boundary
    public :: compute_subgrid_boundary_error
 
+   ! Параметры аналитического решения для двумерной краевой задачи.
+   ! R1, R2: внутренний и внешний радиусы эталонного логарифмического профиля.
+   ! x_min, y_min: координаты левого нижнего угла расчетной области.
+   ! len: длина стороны квадратной области.
    real*8, parameter :: R1 = 0.1d0, R2 = 1.0d0
    real*8, parameter :: x_min = 0.3d0, y_min = 0.0d0
    real*8, parameter :: len = 0.4d0
 
 contains
 
+   ! Инициализирует границы двумерной подсетки аналитическим профилем.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки размера u_size x u_size.
+   ! u_size: число узлов подсетки по одной координате.
    subroutine initialize_subgrid_boundary(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -35,6 +43,11 @@ contains
 
    end subroutine initialize_subgrid_boundary
 
+   ! Вычисляет максимальную ошибку подсетки относительно аналитического профиля.
+   ! Аргументы:
+   ! u: одномерное представление квадратной подсетки размера u_size x u_size.
+   ! u_size: число узлов подсетки по одной координате.
+   ! error: возвращаемая максимальная абсолютная ошибка.
    subroutine compute_subgrid_boundary_error(u, u_size, error)
       implicit none
       integer, intent(in) :: u_size

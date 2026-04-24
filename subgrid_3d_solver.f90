@@ -4,9 +4,10 @@ module subgrid_3d_solver
 
    interface
 
-      !Интерфейс метода решения задачи в трехмерной области.
-      !subgrid0 - Массив значений в узлах кубической сетки.
-      !subgrid_size0 - Размер кубической сетки вдоль одной оси.
+      ! Интерфейс метода решения задачи в отдельной трехмерной подсетке.
+      ! Аргументы:
+      ! subgrid0: одномерное представление кубической подсетки.
+      ! subgrid_size0: размер подсетки по одной координате.
       subroutine i_subgrid_3d_solver_method(subgrid0, subgrid_size0)
          implicit none
          integer, intent(in) :: subgrid_size0
@@ -25,17 +26,24 @@ module subgrid_3d_solver
    public :: tiling_3d_sor
    public :: subtiling_3d_sor, subtiling_3d_sor_test
 
-   !Параметры метода решения.
+   ! Параметры и состояние трехмерного решателя подсетки.
+   ! eps: критерий остановки по суммарному изменению внутренних узлов.
+   ! omega: параметр релаксации метода SOR.
    real*8 :: eps, omega
+   ! max_iter: верхний предел числа итераций.
    integer :: max_iter
+   ! tile_size: размер плитки для tiled-вариантов обхода.
+   ! subtile_level: глубина сублингового разбиения для subtiling-вариантов.
    integer :: tile_size, subtile_level
 
+   ! time: время последнего запуска решателя.
    real*8 :: time
+   ! iter: число итераций последнего запуска.
    integer :: iter
 
 contains
 
-   !Устанавливает настройки решателя по умолчанию.
+   ! Устанавливает значения по умолчанию для трехмерного решателя подсетки.
    subroutine set_default_subgrid_3d_solver_settings()
       implicit none
 
@@ -47,7 +55,13 @@ contains
 
    end subroutine set_default_subgrid_3d_solver_settings
 
-   !Устанавливает настройки решателя.
+   ! Обновляет настройки трехмерного решателя подсетки.
+   ! Аргументы:
+   ! new_eps: новое значение критерия остановки.
+   ! new_max_iter: новое ограничение на число итераций.
+   ! new_omega: новое значение параметра релаксации.
+   ! new_tile_size: новый размер плитки.
+   ! new_subtile_level: новая глубина сублингового разбиения.
    subroutine set_subgrid_3d_solver_settings(new_eps, new_max_iter, new_omega, new_tile_size, new_subtile_level)
      implicit none
      real*8, intent(in), optional :: new_eps, new_omega
@@ -61,7 +75,13 @@ contains
  
    end subroutine set_subgrid_3d_solver_settings
 
-   !Возвращает параметры решателя.
+   ! Возвращает текущие настройки трехмерного решателя подсетки.
+   ! Аргументы:
+   ! new_eps: сюда записывается текущее значение критерия остановки.
+   ! new_max_iter: сюда записывается текущее ограничение на число итераций.
+   ! new_omega: сюда записывается текущее значение параметра релаксации.
+   ! new_tile_size: сюда записывается текущий размер плитки.
+   ! new_subtile_level: сюда записывается текущая глубина сублингового разбиения.
    subroutine get_subgrid_3d_solver_settings(new_eps, new_max_iter, new_omega, new_tile_size, new_subtile_level)
       implicit none
       real*8, intent(out), optional :: new_eps, new_omega
@@ -75,9 +95,11 @@ contains
   
    end subroutine get_subgrid_3d_solver_settings
  
-   !Запускает решатель.
-   !new_subgrid - значения в узлах сетки.
-   !new_subgrid_size - число узлов сетки вдоль одной оси.
+   ! Запускает выбранный трехмерный решатель подсетки и измеряет время работы.
+   ! Аргументы:
+   ! new_subgrid: рабочий одномерный массив значений подсетки.
+   ! new_subgrid_size: размер подсетки по одной координате.
+   ! new_subgrid_solver_method: выбранный алгоритм решения подсетки.
    subroutine run_subgrid_3d_solver(new_subgrid, new_subgrid_size, new_subgrid_solver_method)
       implicit none
       integer, intent(in) :: new_subgrid_size
@@ -94,7 +116,10 @@ contains
 
    end subroutine run_subgrid_3d_solver
 
-   !Возвращает результаты решателя.
+   ! Возвращает результаты последнего запуска трехмерного решателя подсетки.
+   ! Аргументы:
+   ! res_time: время выполнения в секундах.
+   ! res_iter: число выполненных итераций.
    subroutine get_subgrid_3d_solver_results(res_time, res_iter)
       implicit none
       real*8, intent(out) :: res_time
@@ -103,8 +128,10 @@ contains
       res_iter = iter
    end subroutine get_subgrid_3d_solver_results
 
-   !Метод последовательной верхней релаксации
-   !с классической схемой обхода узлов сетки.
+   ! Классическая реализация трехмерного метода SOR с последовательным обходом узлов.
+   ! Аргументы:
+   ! u: одномерное представление кубической подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine original_3d_sor(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -147,7 +174,10 @@ contains
 
    end subroutine original_3d_sor
 
-   !SOR с тайлингом.
+   ! Трехмерный метод SOR с блочным обходом узлов по плиткам.
+   ! Аргументы:
+   ! u: одномерное представление кубической подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine tiling_3d_sor(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -197,7 +227,10 @@ contains
 
    end subroutine tiling_3d_sor
 
-   !SOR с тестовым субтайлингом.
+   ! Экспериментальный вариант трехмерного SOR с тестовым сублинговым обходом.
+   ! Аргументы:
+   ! u_1d: одномерное представление кубической подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine subtiling_3d_sor_test(u_1d, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -245,7 +278,10 @@ contains
       end do
    end subroutine subtiling_3d_sor_test
 
-   !SOR с субтайлингом.
+   ! Основной вариант трехмерного SOR с сублинговым обходом узлов.
+   ! Аргументы:
+   ! u: одномерное представление кубической подсетки.
+   ! u_size: размер подсетки по одной координате.
    subroutine subtiling_3d_sor(u, u_size)
       implicit none
       integer, intent(in) :: u_size

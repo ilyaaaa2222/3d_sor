@@ -7,28 +7,39 @@ program main
    use subgrid_3d_solver
 
    implicit none
+   ! io: номер файлового дескриптора для записи результатов экспериментов.
    integer, parameter :: io = 10
 
+   ! subgrid_sizes: набор тестовых размеров двумерных и трехмерных подсеток.
    integer, dimension(8), parameter :: subgrid_sizes = &
       [10, 18, 34, 66, 130, 258, 514, 1026]
 
+   ! tile_sizes: набор размеров плиток для tiled- и subtiling-вариантов.
    integer, dimension(4), parameter :: tile_sizes = &
       [1, 2, 4, 8]
 
+   ! subgrid_omegas: подобранные значения omega для двумерного оригинального SOR.
    real*8, dimension(8), parameter :: subgrid_omegas = &
       [1.52129d0, 1.69524d0, 1.82919d0, 1.90899d0, 1.95307d0, 1.97618d0, 1.98793d0, 1.99403d0]
+   ! subgrid_const_omegas: подобранные omega для двумерной задачи с постоянной границей.
    real*8, dimension(8), parameter :: subgrid_const_omegas = &
       [1.52729d0, 1.69504d0, 1.82964d0, 1.90932d0, 1.95305d0, 1.97616d0, 1.98798d0, 1.99394d0]
+   ! subgrid_3d_const_omegas: подобранные omega для трехмерной задачи с постоянной границей.
    real*8, dimension(8), parameter :: subgrid_3d_const_omegas = &
       [1.49519d0, 1.69289d0, 1.82788d0, 1.90853d0, 1.95281d0, 1.97609d0, 1.5d0, 1.5d0]
 
+   ! subgrid_repeats_count: число повторов двумерных запусков для усреднения времени.
    integer, dimension(8), parameter :: subgrid_repeats_count = &
       [10000, 10000, 1000, 1000, 100, 100, 10, 10]
+   ! subgrid_3d_repeats_count: число повторов трехмерных запусков для усреднения времени.
    integer, dimension(8), parameter :: subgrid_3d_repeats_count = &
       [10000, 10000, 1000, 100, 10, 1, 1, 1]
 
+   ! macrogrid_sizes: набор размеров макросетки по каждой координате.
    integer, dimension(8), parameter :: macrogrid_sizes = &
       [1, 2, 3, 4, 5, 6, 7, 8]
+   ! macrogrid_omegas_1, macrogrid_omegas_2, macrogrid_omegas_4: заранее подобранные omega
+   ! для разных размеров макросетки и размеров подсетки.
    real*8, dimension(8), parameter :: macrogrid_omegas_1 = &
       [1.9d0, 1.99d0, 1.999d0, 1.999d0, 1.999d0, 1.999d0, 1.999d0, 1.999d0]
    real*8, dimension(8), parameter :: macrogrid_omegas_2 = &
@@ -39,6 +50,7 @@ program main
       [1.99283687348090d0, 1.99684870120073d0, 1.99836547729607d0, &
       1.99866111661454d0, 1.99955171858458d0, 1.999d0, &
       1.999d0, 1.999d0]
+   ! macrogrid_omegas: сводная таблица omega для макросеточных экспериментов.
    real*8, dimension(8,8) :: macrogrid_omegas
 
    macrogrid_omegas(1,:) = macrogrid_omegas_1(:)
@@ -53,7 +65,7 @@ program main
    call subgrid_3d_test()
 
 contains
-
+   ! Запускает серию тестов для трехмерных решателей подсетки.
    subroutine subgrid_3d_test()
       implicit none
 
@@ -98,7 +110,7 @@ contains
 
       write(*, *) "End of subgrid tests"
    end subroutine subgrid_3d_test
-
+   ! Запускает серию тестов для двумерных решателей подсетки.
    subroutine subgrid_test()
       implicit none
 
@@ -192,7 +204,7 @@ contains
 
       write(*, *) "End of subgrid tests"
    end subroutine subgrid_test
-
+   ! Запускает серию тестов для макросеточного решателя.
    subroutine macrogrid_test()
       implicit none
 
@@ -292,7 +304,11 @@ contains
 
       write(*, *) "End of macrogrid tests"
    end subroutine macrogrid_test
-
+   ! Выполняет один набор измерений для выбранного трехмерного решателя подсетки.
+   ! Аргументы:
+   ! subgrid_solver_method: тестируемый трехмерный алгоритм решения подсетки.
+   ! subgrid_size_idx: индекс размера подсетки в таблице subgrid_sizes.
+   ! tile_size_idx: индекс размера плитки в таблице tile_sizes.
    subroutine run_subgrid_3d_test(subgrid_solver_method, subgrid_size_idx, tile_size_idx)
       implicit none
       procedure(i_subgrid_3d_solver_method) :: subgrid_solver_method
@@ -335,7 +351,10 @@ contains
       deallocate(subgrid)
 
    end subroutine run_subgrid_3d_test
-
+   ! Выполняет один набор измерений для выбранного двумерного решателя подсетки.
+   ! Аргументы:
+   ! subgrid_solver_method: тестируемый двумерный алгоритм решения подсетки.
+   ! subgrid_size_idx: индекс размера подсетки в таблице subgrid_sizes.
    subroutine run_subgrid_test(subgrid_solver_method, subgrid_size_idx)
       implicit none
       procedure(i_subgrid_solver_method) :: subgrid_solver_method
@@ -375,7 +394,13 @@ contains
       deallocate(subgrid)
 
    end subroutine run_subgrid_test
-
+   ! Выполняет один набор измерений для выбранной комбинации макро- и подрешателей.
+   ! Аргументы:
+   ! use_openmp: признак использования OpenMP для расчета подсеток.
+   ! macrogrid_solver_method: тестируемый алгоритм согласования интерфейсов.
+   ! subgrid_solver_method: тестируемый решатель отдельной подсетки.
+   ! macrogrid_size_idx: индекс размера макросетки в таблице macrogrid_sizes.
+   ! subgrid_size_idx: индекс размера подсетки в таблице subgrid_sizes.
    subroutine run_macrogrid_test(use_openmp, macrogrid_solver_method, subgrid_solver_method, &
       macrogrid_size_idx, subgrid_size_idx)
       implicit none
@@ -416,7 +441,10 @@ contains
       deallocate(macrogrid)
 
    end subroutine run_macrogrid_test
-
+   ! Подбирает omega для трехмерного решателя методом золотого сечения.
+   ! Аргументы:
+   ! subgrid_size_idx: индекс размера подсетки в таблице subgrid_sizes.
+   ! subgrid_omega: найденное оптимальное значение omega.
    subroutine subgrid_3d_golden_section(subgrid_size_idx, subgrid_omega)
       implicit none
       integer, intent(in) :: subgrid_size_idx
@@ -489,7 +517,11 @@ contains
       deallocate(subgrid)
 
    end subroutine subgrid_3d_golden_section
-
+   ! Подбирает omega для макросеточного решателя методом золотого сечения.
+   ! Аргументы:
+   ! macrogrid_size_idx: индекс размера макросетки в таблице macrogrid_sizes.
+   ! subgrid_size_idx: индекс размера подсетки в таблице subgrid_sizes.
+   ! macrogrid_omega: найденное оптимальное значение omega.
    subroutine golden_section(macrogrid_size_idx, subgrid_size_idx, macrogrid_omega)
       implicit none
       integer, intent(in) :: macrogrid_size_idx, subgrid_size_idx
@@ -561,7 +593,11 @@ contains
       deallocate(macrogrid)
 
    end subroutine golden_section
-
+   ! Печатает значения макросетки в удобном для просмотра виде.
+   ! Аргументы:
+   ! macrogrid: четырехмерный массив значений макросетки.
+   ! macrogrid_size: число подсеток по каждой координате.
+   ! subgrid_size: размер одной подсетки.
    subroutine print_macrogrid(macrogrid, macrogrid_size, subgrid_size)
       implicit none
       integer, intent(in) :: macrogrid_size, subgrid_size
@@ -581,7 +617,7 @@ contains
       print *, ' '
 
    end subroutine print_macrogrid
-
+   ! Запускает подбор omega для набора трехмерных размеров подсетки.
    subroutine subgrid_3d_golden_section_test()
       implicit none
 

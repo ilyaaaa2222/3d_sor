@@ -5,6 +5,7 @@ module macrogrid_3d_solver
    private
 
    interface
+      ! Интерфейс трехмерного макроитерационного метода.
       subroutine i_macrogrid_solver_method()
          implicit none
       end subroutine i_macrogrid_solver_method
@@ -18,31 +19,50 @@ module macrogrid_3d_solver
    public :: simple_iteration_3d
    public :: simple_iteration_3d_one_iter
 
+   ! Параметры и состояние трехмерного макрорешателя.
+   ! m_size_x, m_size_y, m_size_z: число блоков по соответствующим координатам.
+   ! sub_size: размер одной кубической подсетки.
+   ! max_iter: верхний предел числа макроитераций.
    integer :: m_size_x, m_size_y, m_size_z, sub_size, max_iter
+   ! eps: критерий остановки по суммарной ошибке на интерфейсах.
    real*8 :: eps
+   ! macrogrid: указатель на рабочий шестимерный массив макросетки.
    real*8, pointer :: macrogrid(:,:,:,:,:,:) => null()
 
+   ! sub_solver: выбранный решатель отдельной трехмерной подсетки.
    procedure(i_subgrid_3d_solver_method), pointer :: sub_solver => null()
    
+   ! total_time: время последнего запуска.
    real*8 :: total_time
+   ! total_iter: число макроитераций последнего запуска.
    integer :: total_iter
 
 contains
-
+   ! Устанавливает значения по умолчанию для трехмерного макрорешателя.
    subroutine set_default_macrogrid_3d_solver_settings()
       implicit none
       call set_default_subgrid_3d_solver_settings()
       eps = 1.0d-8
       max_iter = 1000
    end subroutine
-
+   ! Обновляет настройки трехмерного макрорешателя.
+   ! Аргументы:
+   ! new_eps: новое значение критерия остановки.
+   ! new_max_iter: новое ограничение на число итераций.
    subroutine set_macrogrid_3d_solver_settings(new_eps, new_max_iter)
       real*8, intent(in), optional :: new_eps
       integer, intent(in), optional :: new_max_iter
       if (present(new_eps)) eps = new_eps
       if (present(new_max_iter)) max_iter = new_max_iter
    end subroutine
-
+   ! Настраивает модуль, запускает трехмерный макрометод и измеряет время работы.
+   ! Аргументы:
+   ! use_openmp: признак использования OpenMP при расчете подсеток.
+   ! new_macrogrid: рабочий шестимерный массив значений макросетки.
+   ! nx, ny, nz: число блоков по осям X, Y и Z.
+   ! s_size: размер одной кубической подсетки.
+   ! macro_method: выбранный метод согласования интерфейсов между блоками.
+   ! sub_method: выбранный решатель отдельной трехмерной подсетки.
    subroutine run_macrogrid_3d_solver(use_openmp, new_macrogrid, &
       nx, ny, nz, s_size, &
       macro_method, sub_method)
@@ -72,7 +92,10 @@ contains
 
       total_time = t_end - t_start
    end subroutine
-
+   ! Возвращает результаты последнего запуска трехмерного макрорешателя.
+   ! Аргументы:
+   ! res_time: время выполнения в секундах.
+   ! res_iter: число выполненных макроитераций.
    subroutine get_macrogrid_3d_solver_results(res_time, res_iter)
       real*8, intent(out) :: res_time
       integer, intent(out) :: res_iter
@@ -80,7 +103,7 @@ contains
       res_iter = total_iter
    end subroutine
 
-   ! Внутренняя процедура запуска решателей в подсетках
+   ! Запускает решатель на всех трехмерных подсетках макросетки.
    subroutine compute_all_subgrids()
       integer :: ix, iy, iz
       !$OMP PARALLEL DO PRIVATE(ix, iy, iz) COLLAPSE(3) SCHEDULE(static) IF(m_size_x*m_size_y*m_size_z > 1)
@@ -94,7 +117,7 @@ contains
       !$OMP END PARALLEL DO
    end subroutine
 
-   ! Метод простой итерации (3D версия формулы 2.2.2 из диплома)
+   ! Выполняет трехмерный вариант простой итерации на интерфейсах между блоками.
    subroutine simple_iteration_3d()
       implicit none
       real*8 :: err, new_val, old_val
@@ -171,7 +194,7 @@ contains
       call compute_edges_and_vertices()
    end subroutine
 
-   ! Однократный запуск (Метод из раздела 2.3 диплома)
+   ! Выполняет трехмерную простую итерацию при одном шаге решателя подсетки на макроитерацию.
    subroutine simple_iteration_3d_one_iter()
       integer :: old_max
       call get_subgrid_3d_solver_settings(new_max_iter=old_max)
@@ -180,7 +203,7 @@ contains
       call set_subgrid_3d_solver_settings(new_max_iter=old_max)
    end subroutine
 
-   ! Обработка ребер и вершин, где сходятся несколько подсеток
+   ! Согласует значения на ребрах и вершинах, где сходятся несколько трехмерных подсеток.
    subroutine compute_edges_and_vertices()
       integer :: ix, iy, iz
       real*8 :: val

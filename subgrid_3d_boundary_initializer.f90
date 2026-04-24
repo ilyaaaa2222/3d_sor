@@ -2,20 +2,21 @@ module subgrid_3d_boundary_initializer
    implicit none
    private
 
-   !Публичные методы модуля.
    public :: initialize_subgrid_3d_boundary
    public :: compute_subgrid_3d_boundary_error
 
-   !Параметры инициализации границ сетки для задачи с логарифмами.
-   !TODO: Реализовать метод инициализации границ сетки для задачи с логарифмами.
+   ! Параметры эталонной области, зарезервированные для задач с аналитической границей.
+   ! Сейчас в трехмерном инициализаторе используется только константная граница 1.0.
    real*8, parameter :: R1 = 0.1d0, R2 = 1.0d0
    real*8, parameter :: x_min = 0.3d0, y_min = 0.0d0
    real*8, parameter :: len = 0.4d0
 
 contains
 
-   !Инициализирует границы кубической сетки
-   !для задачи с единичками.
+   ! Инициализирует граничные узлы кубической подсетки значением 1.0.
+   ! Аргументы:
+   ! u: одномерное представление кубической подсетки размера u_size x u_size x u_size.
+   ! u_size: число узлов подсетки по одной координате.
    subroutine initialize_subgrid_3d_boundary(u, u_size)
       implicit none
       integer, intent(in) :: u_size
@@ -44,7 +45,11 @@ contains
       end do
    end subroutine initialize_subgrid_3d_boundary
 
-   !Возвращает ошибку решения задачи с единичками.
+   ! Вычисляет максимальное отклонение значений подсетки от 1.0.
+   ! Аргументы:
+   ! u: одномерное представление кубической подсетки размера u_size x u_size x u_size.
+   ! u_size: число узлов подсетки по одной координате.
+   ! error: возвращаемая максимальная абсолютная ошибка.
    subroutine compute_subgrid_3d_boundary_error(u, u_size, error)
       implicit none
       integer, intent(in) :: u_size
